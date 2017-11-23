@@ -60,7 +60,7 @@ public class Raft {
 
     }
 
-    synchronized private void setElectionTimeout() {
+    synchronized public void setElectionTimeout() {
         this.electionTimeout = System.currentTimeMillis() + this.config.getElectionTimeout(); //TODO: add random timeout?
     }
 
@@ -125,9 +125,7 @@ public class Raft {
         setElectionTimeout();
     }
 
-    synchronized void becomeLeader() {
 
-    }
 
     public void start() {
         this.state = State.Follower;
@@ -172,7 +170,46 @@ public class Raft {
         }
     }
 
+    public int getCurrentTerm() {
+        return currentTerm;
+    }
 
+    public int getVotedFor() {
+        return votedFor;
+    }
 
+    public int getLastLogIndex() {
+        return logs.getLastLogIndex();
+    }
 
+    public int getLastLogTerm() {
+        return logs.getLastLogTerm();
+    }
+
+    public void setState(State state) {
+        this.state = state;
+    }
+
+    private void clearAllPendingRequests() {
+
+    }
+
+    synchronized public boolean stepDown(int term) {
+        if (term > this.currentTerm) {
+            this.currentTerm = term;
+            votedFor = -1;
+            if (this.state == State.Candidate || this.state == State.Leader) {
+                this.state = State.Follower;
+                logger.info("{} is stepping down (term{})", this, term);
+                clearAllPendingRequests();
+            }
+            setElectionTimeout();
+            return true;
+        }
+        return false;
+    }
+
+    synchronized private void becomeLeader() {
+
+    }
 }
