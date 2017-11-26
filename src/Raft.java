@@ -1,5 +1,3 @@
-import org.apache.log4j.Logger;
-import org.apache.log4j.spi.LoggerFactory;
 import org.apache.thrift.TException;
 import org.apache.thrift.protocol.TBinaryProtocol;
 import org.apache.thrift.protocol.TProtocol;
@@ -10,12 +8,14 @@ import org.apache.thrift.transport.TTransport;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
+import org.apache.log4j.BasicConfigurator;
+import org.apache.log4j.Logger;
 
 /**
  * Created by shipeng on 17-11-14.
  */
 public class Raft {
-    private static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(Raft.class);
+    private static Logger logger;
     // Self Node ID
     private int id;
 
@@ -50,6 +50,8 @@ public class Raft {
     private State state;
 
     public Raft(Configuration config) {
+        BasicConfigurator.configure();
+        logger = Logger.getLogger(Raft.class);
         this.config = config;
     }
 
@@ -83,12 +85,12 @@ public class Raft {
 
     private void periodicTask() { // TODO: need to be synchronized type?
         System.out.println("I am alive "+this.id + " " + this.state);
-        switch (this.state) {
-            case Follower:
-                if (System.currentTimeMillis() > this.electionTimeout) {
-                    startElection();
-                }
-        }
+//        switch (this.state) {
+//            case Follower:
+//                if (System.currentTimeMillis() > this.electionTimeout) {
+//                    startElection();
+//                }
+//        }
 
     }
 
@@ -97,7 +99,7 @@ public class Raft {
         AtomicInteger votes = new AtomicInteger(1);
         this.state = State.Candidate;
         this.currentTerm += 1;
-        logger.info("{} is start an election (term {})", this, this.currentTerm);
+        logger.info(this + " is start an election (term "+this.currentTerm + ")");
         // Not create threads for voting currently
         // Sequentially request. Create PRC client, do stuff, close it.
         if (this.peers.size() > 0) {
@@ -133,7 +135,6 @@ public class Raft {
         // Increase election timeout during start, ensure all nodes are ready
         this.electionTimeout += 10000;
         genThread4PeriodicTask();
-
     }
 
     public void setID(int id) {
@@ -200,7 +201,7 @@ public class Raft {
             votedFor = -1;
             if (this.state == State.Candidate || this.state == State.Leader) {
                 this.state = State.Follower;
-                logger.info("{} is stepping down (term{})", this, term);
+                logger.info(this + " is stepping down (term" + term + ")");
                 clearAllPendingRequests();
             }
             setElectionTimeout();
