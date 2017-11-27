@@ -27,6 +27,7 @@ public class RPCHandler implements RaftRPC.Iface {
         StorageNode.logger.info(this + " receive entries from " + leaderID);
         if (term >= raft.getCurrentTerm()) {
             if (term > raft.getCurrentTerm()) {
+                StorageNode.logger.info(term + " > " + raft.getCurrentTerm() + " Step Down");
                 raft.stepDown(term);
             }
             if (raft.getLeaderID() != leaderID) {
@@ -69,5 +70,35 @@ public class RPCHandler implements RaftRPC.Iface {
         }
     }
 
+    public ClientResponse Get(int id, String key) throws org.apache.thrift.TException {
+        ClientResponse response = new ClientResponse();
+        if (raft.getState() == Raft.State.Leader) {
+            response.setValue(raft.getValue(key));
+            response.setStatus((short)0);
+        } else if (raft.getLeaderID() != -1) {
+            response.setStatus((short)-1);
+            Peer leader = raft.getPeer(raft.getLeaderID());
+            response.setIp(leader.getIp());
+            response.setPort(leader.getPort());
+        } else {
+            response.setStatus((short)-2);
+        }
+        return response;
+    }
 
+    public ClientResponse Put(int id, String key, String value) throws org.apache.thrift.TException {
+        ClientResponse response = new ClientResponse();
+        if (raft.getState() == Raft.State.Leader) {
+            if (raft.putValue(key, value))
+                response.setStatus((short)0);
+        } else if (raft.getLeaderID() != -1) {
+            response.setStatus((short)-1);
+            Peer leader = raft.getPeer(raft.getLeaderID());
+            response.setIp(leader.getIp());
+            response.setPort(leader.getPort());
+        } else {
+            response.setStatus((short)-2);
+        }
+        return response;
+    }
 }

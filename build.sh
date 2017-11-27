@@ -19,3 +19,4 @@ echo --- Compiling Java
 $JAVA_CC -version
 $JAVA_CC gen-java/*.java
 $JAVA_CC src/*.java
+$JAVA_CC test/*.java

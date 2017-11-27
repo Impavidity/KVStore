@@ -30,7 +30,7 @@ public class Raft {
 
 
 
-    private int leaderID;
+    private int leaderID = -1;
     private Log logs;
 
     // volatile state on all servers
@@ -47,10 +47,27 @@ public class Raft {
         Follower, Candidate, Leader
     }
 
-    private Map<Integer, Peer> peers = new HashMap<Integer, Peer>();
+    private Map<Integer, Peer> peers = new ConcurrentHashMap<>();
     private Map<Integer, RaftRPC.Client> clients = new ConcurrentHashMap<Integer, RaftRPC.Client>();
 
+    private Map<String, String> keyValue = new ConcurrentHashMap<>();
 
+    public String getValue(String key) {
+        String result = keyValue.get(key);
+        if (result == null)
+            result = "";
+        return result;
+    }
+
+    public boolean putValue(String key, String value) {
+        keyValue.put(key, value);
+        return true;
+    }
+
+
+    public State getState() {
+        return state;
+    }
 
     private State state;
 
@@ -78,7 +95,7 @@ public class Raft {
                 while (true) { // TODO: check the role/state ?
                     periodicTask();
                     try {
-                        Thread.sleep(1000);
+                        Thread.sleep(100);
                     } catch (InterruptedException e) {
                         e.printStackTrace();
                     }
@@ -90,7 +107,7 @@ public class Raft {
     }
 
     private void periodicTask() { // TODO: need to be synchronized type?
-        //System.out.println("I am alive "+this.id + " " + this.state);
+        System.out.println("I am alive "+this.id + " " + this.state);
         switch (this.state) {
             case Follower:
                 if (System.currentTimeMillis() > this.electionTimeout) {
@@ -115,21 +132,26 @@ public class Raft {
         // Not create threads for voting currently
         // Sequentially request. Create PRC client, do stuff, close it.
         if (this.peers.size() > 0) {
-            for (Map.Entry<Integer, Peer> entry: this.peers.entrySet()) {
+            for (Map.Entry<Integer, Peer> entry : this.peers.entrySet()) {
                 RaftRPC.Client client = getClient(entry.getKey());
+                if (client == null) continue;
                 synchronized (client) {
                     try {
                         RequestVoteResponse response = client.RequestVote(this.currentTerm,
                                 this.id, this.logs.getLastLogIndex(), this.logs.getLastLogTerm());
-                        if (response.term == this.currentTerm && this.state == State.Candidate) {
-                            if (response.voteGranted) {
-                                if (votes.incrementAndGet() > votesNeeded) {
-                                    becomeLeader();
+                        if (!stepDown(response.term)) {
+                            if (response.term == this.currentTerm && this.state == State.Candidate) {
+                                if (response.voteGranted) {
+                                    if (votes.incrementAndGet() > votesNeeded) {
+                                        becomeLeader();
+                                    }
                                 }
                             }
                         }
                     } catch (TException e) {
-                        e.printStackTrace();
+                        StorageNode.logger.info("Request vote to peer " + entry.getKey() + " failed");
+                        this.clients.remove(entry.getKey());
+                        //e.printStackTrace();
                     }
                 }
             }
@@ -157,26 +179,25 @@ public class Raft {
         this.peers.put(id, peer);
     }
 
+
+    public Peer getPeer(int id) {
+        return this.peers.get(id);
+    }
+
     public RaftRPC.Client getClient(int id) {
         RaftRPC.Client client = this.clients.get(id);
         if (client == null) {
-            while (true) {
-                try {
-                    Peer peer = this.peers.get(id);
-                    TSocket sock = new TSocket(peer.getIp(), peer.getPort());
-                    TTransport transport = new TFramedTransport(sock);
-                    transport.open();
-                    TProtocol protocol = new TBinaryProtocol(transport);
-                    this.clients.put(id, new RaftRPC.Client(protocol));
-                    return this.clients.get(id);
-                } catch (Exception e) {
-                    e.printStackTrace();
-                    try {
-                        Thread.sleep(100);
-                    } catch (InterruptedException e1) {
-                        e1.printStackTrace();
-                    }
-                }
+            try {
+                Peer peer = this.peers.get(id);
+                TSocket sock = new TSocket(peer.getIp(), peer.getPort());
+                TTransport transport = new TFramedTransport(sock);
+                transport.open();
+                TProtocol protocol = new TBinaryProtocol(transport);
+                this.clients.put(id, new RaftRPC.Client(protocol));
+                return this.clients.get(id);
+            } catch (Exception e) {
+                //e.printStackTrace();
+                return null;
             }
         } else {
             return client;
@@ -245,13 +266,16 @@ public class Raft {
 
     synchronized private void updatePeer(Peer peer) {
         RaftRPC.Client client = getClient(peer.getId());
+        if (client == null) return;
         synchronized (client) {
             try {
                 // Try heartbeat first to make it successful
                 AppendEntriesResponse response = client.AppendEntries(this.currentTerm,
                         this.id, -1, -1, null, -1);
             } catch (TException e) {
-                e.printStackTrace();
+                //e.printStackTrace();
+                StorageNode.logger.info("Update Peer " + peer.getId() + " failed");
+                this.clients.remove(peer.getId());
             }
         }
     }
@@ -262,5 +286,9 @@ public class Raft {
 
     public int getLeaderID() {
         return leaderID;
+    }
+
+    public int getId() {
+        return id;
     }
 }
