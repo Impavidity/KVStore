@@ -15,7 +15,7 @@ import org.apache.log4j.Logger;
  * Created by shipeng on 17-11-14.
  */
 public class Raft {
-    private static Logger logger;
+
     // Self Node ID
     private int id;
 
@@ -27,11 +27,16 @@ public class Raft {
     // persistent state on all servers
     private int currentTerm;
     private int votedFor;
+
+
+
+    private int leaderID;
     private Log logs;
 
     // volatile state on all servers
     private int commitIndex;
     private int lastApplied;
+    private int firstIndexOfTerm;
 
     // volatile state on leaders
     private Map<Integer, Integer> nextIndex;
@@ -50,9 +55,10 @@ public class Raft {
     private State state;
 
     public Raft(Configuration config) {
-        BasicConfigurator.configure();
-        logger = Logger.getLogger(Raft.class);
+//        BasicConfigurator.configure();
+//        logger = Logger.getLogger(Raft.class);
         this.config = config;
+        this.logs = new Log();
     }
 
     private void persist() {
@@ -84,13 +90,17 @@ public class Raft {
     }
 
     private void periodicTask() { // TODO: need to be synchronized type?
-        System.out.println("I am alive "+this.id + " " + this.state);
-//        switch (this.state) {
-//            case Follower:
-//                if (System.currentTimeMillis() > this.electionTimeout) {
-//                    startElection();
-//                }
-//        }
+        //System.out.println("I am alive "+this.id + " " + this.state);
+        switch (this.state) {
+            case Follower:
+                if (System.currentTimeMillis() > this.electionTimeout) {
+                    startElection();
+                }
+                break;
+            case Leader:
+                updatePeers();
+                break;
+        }
 
     }
 
@@ -99,7 +109,9 @@ public class Raft {
         AtomicInteger votes = new AtomicInteger(1);
         this.state = State.Candidate;
         this.currentTerm += 1;
-        logger.info(this + " is start an election (term "+this.currentTerm + ")");
+        this.leaderID = -1;
+        this.votedFor = this.id;
+        StorageNode.logger.info(this + " is start an election (term "+this.currentTerm + ")");
         // Not create threads for voting currently
         // Sequentially request. Create PRC client, do stuff, close it.
         if (this.peers.size() > 0) {
@@ -201,7 +213,7 @@ public class Raft {
             votedFor = -1;
             if (this.state == State.Candidate || this.state == State.Leader) {
                 this.state = State.Follower;
-                logger.info(this + " is stepping down (term" + term + ")");
+                StorageNode.logger.info(this + " is stepping down (term" + term + ")");
                 clearAllPendingRequests();
             }
             setElectionTimeout();
@@ -211,6 +223,44 @@ public class Raft {
     }
 
     synchronized private void becomeLeader() {
+        StorageNode.logger.info(this + " become leader");
+        this.leaderID = this.id;
+        this.state = State.Leader;
+        this.firstIndexOfTerm = this.logs.getLastLogIndex() + 1;
+        for (Peer peer : peers.values()) {
+            // Set some info here
+        }
+        updatePeers();
+    }
 
+    synchronized private void updatePeers() {
+        if (this.state == State.Leader) {
+            for (Peer peer: this.peers.values()) {
+                updatePeer(peer);
+            }
+        } else {
+            StorageNode.logger.error(this + " is not leader but update peers");
+        }
+    }
+
+    synchronized private void updatePeer(Peer peer) {
+        RaftRPC.Client client = getClient(peer.getId());
+        synchronized (client) {
+            try {
+                // Try heartbeat first to make it successful
+                AppendEntriesResponse response = client.AppendEntries(this.currentTerm,
+                        this.id, -1, -1, null, -1);
+            } catch (TException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
+    public void setLeaderID(int leaderID) {
+        this.leaderID = leaderID;
+    }
+
+    public int getLeaderID() {
+        return leaderID;
     }
 }

@@ -11,10 +11,11 @@ import org.apache.log4j.Logger;
 public class StorageNode {
 
     static Logger logger;
-
     public static void main(String[] args) throws TTransportException {
         BasicConfigurator.configure();
-        logger = Logger.getLogger(StorageNode.class);
+        logger = Logger.getLogger(StorageNode.class.getName());
+        //logger.setAdditivity(false);
+        //logger.setLevel(Level.INFO);
         Configuration config = new Configuration();
         Raft raft = new Raft(config);
         raft.setID(Integer.parseInt(args[0]));
@@ -27,7 +28,6 @@ public class StorageNode {
             Peer peer = new Peer(ip, port, id);
             raft.addPeer(id, peer);
         }
-        raft.start();
         RPCHandler handler = new RPCHandler(raft);
         RaftRPC.Processor<RaftRPC.Iface> processor = new RaftRPC.Processor<>(handler);
         TServerSocket socket = new TServerSocket(Integer.parseInt(args[1]));
@@ -38,6 +38,7 @@ public class StorageNode {
         sargs.maxWorkerThreads(64);
         TServer server = new TThreadPoolServer(sargs);
         logger.info("Launching server");
+        raft.start();
         server.serve();
     }
 }

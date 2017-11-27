@@ -3,8 +3,8 @@
  */
 public class Log {
 
-    private int lastIndex = 0;
-    private int lastTerm = 0;
+    private int lastIndex = -1;
+    private int lastTerm = -1;
     synchronized public int getLastLogIndex() {
         return lastIndex;
     }
