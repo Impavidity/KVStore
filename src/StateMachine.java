@@ -2,7 +2,7 @@ import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class StateMachine {
-    private int index = 0;
+    private int index = -1;
     private int term = 0;
 
     private Map<String, String> map;
