@@ -10,6 +10,7 @@ public class StateMachine {
 
     public StateMachine() {
         map = new ConcurrentHashMap<>();
+        indexValue = new ConcurrentHashMap<>();
     }
 
     public int getIndex() {

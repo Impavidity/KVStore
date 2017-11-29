@@ -201,7 +201,7 @@ public class Log {
     }
 
     synchronized public Entry getEntry(int index) {
-        if (index > 0 && index <= lastIndex) {
+        if (index >= 0 && index <= lastIndex) {
             if (index >= firstIndex && entries.size() > 0) {
                 assert (index - firstIndex < Integer.MAX_VALUE);
                 assert (firstIndex == entries.get(0).index);
