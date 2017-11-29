@@ -25,7 +25,7 @@ public class Log {
         this.config = config;
         this.stateMachine = stateMachine;
 
-        this.config.getLogDirector().mkdirs();
+        this.config.getLogDirectory().mkdirs();
 
         replayLogs();
 
@@ -65,7 +65,7 @@ public class Log {
     }
 
     public File getLogDirectory() {
-        return config.getLogDirector();
+        return config.getLogDirectory();
     }
 
     public List<Entry> getEntries() {
@@ -216,7 +216,7 @@ public class Log {
         return null;
     }
 
-    public List<Entry> loadLogFile(File file) throws IOException {
+    public List<Entry> loadLogFile(File file) {
         List<Entry> list =  new ArrayList<>();
         try {
             DataInputStream in = new DataInputStream(new BufferedInputStream(new FileInputStream(file)));
@@ -229,7 +229,7 @@ public class Log {
                 final Entry entry = new Entry(term, index, type, key, value);
                 list.add(entry);
             }
-        } catch (EOFException e) {
+        } catch (IOException e) {
             logger.debug("Read {} from {}", list.size(), file);
         }
         return list;
