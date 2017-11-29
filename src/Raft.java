@@ -346,19 +346,33 @@ public class Raft {
     }
 
     public ClientResponse executeCommand(int type, int id, String key, String value) {
+        ClientResponse response = new ClientResponse();
         if (state == State.Leader) {
             Entry e = new Entry(this.currentTerm, this.logs.getLastLogIndex()+1, type, key, value);
             boolean r = this.logs.append(e);
             if (r) {
                 while (e.index > this.logs.getStateMachine().getIndex()) {
                 }
+                if (e.type == 2) {
+                    response.setValue(this.logs.getStateMachine().getValue(e.index));
+                    response.setStatus((short)0);
+                } else if (e.type == 1) {
+                    response.setStatus((short)0);
+                }
                 // TODO: How to get the result and compose the response
             } else {
                 // Client resent this command, if it
                 // TODO: Feature request: If the Entry is existed (duplicate), then return the duplicate entry
             }
+        } else if (leaderID != -1) {
+            response.setStatus((short)-1);
+            Peer leader = getPeer(leaderID);
+            response.setIp(leader.getIp());
+            response.setPort(leader.getPort());
+        } else {
+            response.setStatus((short)-2);
         }
-        return new ClientResponse();
+        return response;
     }
 
     public void setLeaderID(int leaderID) {

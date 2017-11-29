@@ -37,7 +37,7 @@ public class RPCHandler implements RaftRPC.Iface {
             }
             raft.setElectionTimeout();
 
-            if (raft.getLogs().isConsistenWith(prevLogIndex, prevLogTerm)) {
+            if (raft.getLogs().isConsistentWith(prevLogIndex, prevLogTerm)) {
                 if (entries != null) {
                     for (Entry e: entries) {
                         if (! raft.getLogs().append(e)) {

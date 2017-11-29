@@ -10,6 +10,7 @@ public class StateMachine {
 
     public StateMachine() {
         map = new ConcurrentHashMap<>();
+        indexValue = new ConcurrentHashMap<>();
     }
 
     public int getIndex() {
@@ -32,5 +33,9 @@ public class StateMachine {
 
         this.index = entry.index;
         this.term = entry.term;
+    }
+
+    public String getValue(int index) {
+        return indexValue.get(index);
     }
 }
