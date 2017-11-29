@@ -34,4 +34,8 @@ public class StateMachine {
         this.index = entry.index;
         this.term = entry.term;
     }
+
+    public String getValue(int index) {
+        return indexValue.get(index);
+    }
 }

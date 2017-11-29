@@ -38,6 +38,7 @@ public class AppendEntriesResponse implements org.apache.thrift.TBase<AppendEntr
 
   private static final org.apache.thrift.protocol.TField TERM_FIELD_DESC = new org.apache.thrift.protocol.TField("term", org.apache.thrift.protocol.TType.I32, (short)1);
   private static final org.apache.thrift.protocol.TField SUCCESS_FIELD_DESC = new org.apache.thrift.protocol.TField("success", org.apache.thrift.protocol.TType.BOOL, (short)2);
+  private static final org.apache.thrift.protocol.TField LAST_LOG_INDEX_FIELD_DESC = new org.apache.thrift.protocol.TField("lastLogIndex", org.apache.thrift.protocol.TType.I32, (short)3);
 
   private static final Map<Class<? extends IScheme>, SchemeFactory> schemes = new HashMap<Class<? extends IScheme>, SchemeFactory>();
   static {
@@ -47,11 +48,13 @@ public class AppendEntriesResponse implements org.apache.thrift.TBase<AppendEntr
 
   public int term; // required
   public boolean success; // required
+  public int lastLogIndex; // required
 
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
   public enum _Fields implements org.apache.thrift.TFieldIdEnum {
     TERM((short)1, "term"),
-    SUCCESS((short)2, "success");
+    SUCCESS((short)2, "success"),
+    LAST_LOG_INDEX((short)3, "lastLogIndex");
 
     private static final Map<String, _Fields> byName = new HashMap<String, _Fields>();
 
@@ -70,6 +73,8 @@ public class AppendEntriesResponse implements org.apache.thrift.TBase<AppendEntr
           return TERM;
         case 2: // SUCCESS
           return SUCCESS;
+        case 3: // LAST_LOG_INDEX
+          return LAST_LOG_INDEX;
         default:
           return null;
       }
@@ -112,6 +117,7 @@ public class AppendEntriesResponse implements org.apache.thrift.TBase<AppendEntr
   // isset id assignments
   private static final int __TERM_ISSET_ID = 0;
   private static final int __SUCCESS_ISSET_ID = 1;
+  private static final int __LASTLOGINDEX_ISSET_ID = 2;
   private byte __isset_bitfield = 0;
   public static final Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
   static {
@@ -120,6 +126,8 @@ public class AppendEntriesResponse implements org.apache.thrift.TBase<AppendEntr
         new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.I32)));
     tmpMap.put(_Fields.SUCCESS, new org.apache.thrift.meta_data.FieldMetaData("success", org.apache.thrift.TFieldRequirementType.DEFAULT, 
         new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.BOOL)));
+    tmpMap.put(_Fields.LAST_LOG_INDEX, new org.apache.thrift.meta_data.FieldMetaData("lastLogIndex", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+        new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.I32)));
     metaDataMap = Collections.unmodifiableMap(tmpMap);
     org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(AppendEntriesResponse.class, metaDataMap);
   }
@@ -129,13 +137,16 @@ public class AppendEntriesResponse implements org.apache.thrift.TBase<AppendEntr
 
   public AppendEntriesResponse(
     int term,
-    boolean success)
+    boolean success,
+    int lastLogIndex)
   {
     this();
     this.term = term;
     setTermIsSet(true);
     this.success = success;
     setSuccessIsSet(true);
+    this.lastLogIndex = lastLogIndex;
+    setLastLogIndexIsSet(true);
   }
 
   /**
@@ -145,6 +156,7 @@ public class AppendEntriesResponse implements org.apache.thrift.TBase<AppendEntr
     __isset_bitfield = other.__isset_bitfield;
     this.term = other.term;
     this.success = other.success;
+    this.lastLogIndex = other.lastLogIndex;
   }
 
   public AppendEntriesResponse deepCopy() {
@@ -157,6 +169,8 @@ public class AppendEntriesResponse implements org.apache.thrift.TBase<AppendEntr
     this.term = 0;
     setSuccessIsSet(false);
     this.success = false;
+    setLastLogIndexIsSet(false);
+    this.lastLogIndex = 0;
   }
 
   public int getTerm() {
@@ -205,6 +219,29 @@ public class AppendEntriesResponse implements org.apache.thrift.TBase<AppendEntr
     __isset_bitfield = EncodingUtils.setBit(__isset_bitfield, __SUCCESS_ISSET_ID, value);
   }
 
+  public int getLastLogIndex() {
+    return this.lastLogIndex;
+  }
+
+  public AppendEntriesResponse setLastLogIndex(int lastLogIndex) {
+    this.lastLogIndex = lastLogIndex;
+    setLastLogIndexIsSet(true);
+    return this;
+  }
+
+  public void unsetLastLogIndex() {
+    __isset_bitfield = EncodingUtils.clearBit(__isset_bitfield, __LASTLOGINDEX_ISSET_ID);
+  }
+
+  /** Returns true if field lastLogIndex is set (has been assigned a value) and false otherwise */
+  public boolean isSetLastLogIndex() {
+    return EncodingUtils.testBit(__isset_bitfield, __LASTLOGINDEX_ISSET_ID);
+  }
+
+  public void setLastLogIndexIsSet(boolean value) {
+    __isset_bitfield = EncodingUtils.setBit(__isset_bitfield, __LASTLOGINDEX_ISSET_ID, value);
+  }
+
   public void setFieldValue(_Fields field, Object value) {
     switch (field) {
     case TERM:
@@ -223,6 +260,14 @@ public class AppendEntriesResponse implements org.apache.thrift.TBase<AppendEntr
       }
       break;
 
+    case LAST_LOG_INDEX:
+      if (value == null) {
+        unsetLastLogIndex();
+      } else {
+        setLastLogIndex((Integer)value);
+      }
+      break;
+
     }
   }
 
@@ -233,6 +278,9 @@ public class AppendEntriesResponse implements org.apache.thrift.TBase<AppendEntr
 
     case SUCCESS:
       return isSuccess();
+
+    case LAST_LOG_INDEX:
+      return getLastLogIndex();
 
     }
     throw new IllegalStateException();
@@ -249,6 +297,8 @@ public class AppendEntriesResponse implements org.apache.thrift.TBase<AppendEntr
       return isSetTerm();
     case SUCCESS:
       return isSetSuccess();
+    case LAST_LOG_INDEX:
+      return isSetLastLogIndex();
     }
     throw new IllegalStateException();
   }
@@ -284,6 +334,15 @@ public class AppendEntriesResponse implements org.apache.thrift.TBase<AppendEntr
         return false;
     }
 
+    boolean this_present_lastLogIndex = true;
+    boolean that_present_lastLogIndex = true;
+    if (this_present_lastLogIndex || that_present_lastLogIndex) {
+      if (!(this_present_lastLogIndex && that_present_lastLogIndex))
+        return false;
+      if (this.lastLogIndex != that.lastLogIndex)
+        return false;
+    }
+
     return true;
   }
 
@@ -300,6 +359,11 @@ public class AppendEntriesResponse implements org.apache.thrift.TBase<AppendEntr
     list.add(present_success);
     if (present_success)
       list.add(success);
+
+    boolean present_lastLogIndex = true;
+    list.add(present_lastLogIndex);
+    if (present_lastLogIndex)
+      list.add(lastLogIndex);
 
     return list.hashCode();
   }
@@ -332,6 +396,16 @@ public class AppendEntriesResponse implements org.apache.thrift.TBase<AppendEntr
         return lastComparison;
       }
     }
+    lastComparison = Boolean.valueOf(isSetLastLogIndex()).compareTo(other.isSetLastLogIndex());
+    if (lastComparison != 0) {
+      return lastComparison;
+    }
+    if (isSetLastLogIndex()) {
+      lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.lastLogIndex, other.lastLogIndex);
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+    }
     return 0;
   }
 
@@ -358,6 +432,10 @@ public class AppendEntriesResponse implements org.apache.thrift.TBase<AppendEntr
     if (!first) sb.append(", ");
     sb.append("success:");
     sb.append(this.success);
+    first = false;
+    if (!first) sb.append(", ");
+    sb.append("lastLogIndex:");
+    sb.append(this.lastLogIndex);
     first = false;
     sb.append(")");
     return sb.toString();
@@ -420,6 +498,14 @@ public class AppendEntriesResponse implements org.apache.thrift.TBase<AppendEntr
               org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
             }
             break;
+          case 3: // LAST_LOG_INDEX
+            if (schemeField.type == org.apache.thrift.protocol.TType.I32) {
+              struct.lastLogIndex = iprot.readI32();
+              struct.setLastLogIndexIsSet(true);
+            } else { 
+              org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
+            }
+            break;
           default:
             org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
         }
@@ -440,6 +526,9 @@ public class AppendEntriesResponse implements org.apache.thrift.TBase<AppendEntr
       oprot.writeFieldEnd();
       oprot.writeFieldBegin(SUCCESS_FIELD_DESC);
       oprot.writeBool(struct.success);
+      oprot.writeFieldEnd();
+      oprot.writeFieldBegin(LAST_LOG_INDEX_FIELD_DESC);
+      oprot.writeI32(struct.lastLogIndex);
       oprot.writeFieldEnd();
       oprot.writeFieldStop();
       oprot.writeStructEnd();
@@ -465,19 +554,25 @@ public class AppendEntriesResponse implements org.apache.thrift.TBase<AppendEntr
       if (struct.isSetSuccess()) {
         optionals.set(1);
       }
-      oprot.writeBitSet(optionals, 2);
+      if (struct.isSetLastLogIndex()) {
+        optionals.set(2);
+      }
+      oprot.writeBitSet(optionals, 3);
       if (struct.isSetTerm()) {
         oprot.writeI32(struct.term);
       }
       if (struct.isSetSuccess()) {
         oprot.writeBool(struct.success);
       }
+      if (struct.isSetLastLogIndex()) {
+        oprot.writeI32(struct.lastLogIndex);
+      }
     }
 
     @Override
     public void read(org.apache.thrift.protocol.TProtocol prot, AppendEntriesResponse struct) throws org.apache.thrift.TException {
       TTupleProtocol iprot = (TTupleProtocol) prot;
-      BitSet incoming = iprot.readBitSet(2);
+      BitSet incoming = iprot.readBitSet(3);
       if (incoming.get(0)) {
         struct.term = iprot.readI32();
         struct.setTermIsSet(true);
@@ -485,6 +580,10 @@ public class AppendEntriesResponse implements org.apache.thrift.TBase<AppendEntr
       if (incoming.get(1)) {
         struct.success = iprot.readBool();
         struct.setSuccessIsSet(true);
+      }
+      if (incoming.get(2)) {
+        struct.lastLogIndex = iprot.readI32();
+        struct.setLastLogIndexIsSet(true);
       }
     }
   }

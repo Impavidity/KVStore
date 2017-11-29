@@ -17,13 +17,30 @@ public class Log {
 
     private int firstIndex = -1;
     private int firstTerm = 0;
+
+    public void setCommitIndex(int commitIndex) {
+        this.commitIndex = commitIndex;
+    }
+
+
+    public int getLastIndex() {
+        return lastIndex;
+    }
+
+    public int getLastTerm() {
+        return lastTerm;
+    }
+
     private int lastIndex = -1;
     private int lastTerm = 0;
-    private int commitIndex = 0;
 
-    public Log(Configuration config, StateMachine stateMachine) throws IOException {
+    private int commitIndex = -1;
+    private int id;
+
+    public Log(Configuration config, StateMachine stateMachine, int id) throws IOException {
         this.config = config;
         this.stateMachine = stateMachine;
+        this.id = id;
 
         // create log directory if not exist
         this.config.getLogDirectory().mkdirs();
@@ -43,7 +60,7 @@ public class Log {
     }
 
     public File getCommitLog() {
-        File file = new File(getLogDirectory(), "commit.log");
+        File file = new File(getLogDirectory(), "commit." + this.id );
         return file;
     }
 
@@ -260,7 +277,8 @@ public class Log {
             synchronized (stateMachine) {
                 while (commitIndex > stateMachine.getIndex()) {
                     final Entry entry = getEntry(stateMachine.getIndex() + 1);
-                    assert (entry != null);
+                    if (entry == null) return;
+                    //assert (entry != null);
                     assert (entry.index == stateMachine.getIndex() + 1);
                     stateMachine.apply(entry);
 
@@ -281,7 +299,7 @@ public class Log {
         }
     }
 
-    public Entry[] getEntries(int fromIndex) {
+    public List<Entry> getEntries(int fromIndex) {
         if (fromIndex > lastIndex) {
             return null;
         }
@@ -293,7 +311,7 @@ public class Log {
                 return null;
             }
         }
-        return list;
+        return Arrays.asList(list);
     }
 
     private synchronized void compact() {

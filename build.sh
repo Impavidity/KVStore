@@ -10,6 +10,7 @@ export CLASSPATH="src/:gen-java/:lib/*"
 echo --- Cleaning
 rm -f src/*.class
 rm -fr gen-java
+rm -fr raft
 
 echo --- Compiling Thrift IDL
 $THRIFT_CC --version

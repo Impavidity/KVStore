@@ -6,6 +6,8 @@ import org.apache.thrift.transport.TSocket;
 import org.apache.thrift.transport.TTransport;
 import org.apache.thrift.transport.TTransportException;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Scanner;
 import java.util.UUID;
 
@@ -15,7 +17,7 @@ import java.util.UUID;
 public class Client {
 
     public static RaftRPC.Client getClient(String ip, int port) {
-        while (true) {
+//        while (true) {
             try {
                 TSocket sock = new TSocket(ip, port);
                 TTransport transport = new TFramedTransport(sock);
@@ -24,13 +26,14 @@ public class Client {
                 return new RaftRPC.Client(protocol);
             } catch (TTransportException e) {
                 //e.printStackTrace();
-                try {
-                    Thread.sleep(1000);
-                } catch (InterruptedException e1) {
-                    e1.printStackTrace();
-                }
+                return null;
+//                try {
+//                    Thread.sleep(1000);
+//                } catch (InterruptedException e1) {
+//                    e1.printStackTrace();
+//                }
             }
-        }
+//        }
 
     }
     public static void main(String[] args) {
@@ -38,6 +41,27 @@ public class Client {
         int port = 10010;
         RaftRPC.Client client = getClient(ip, port);
         System.out.println("Testing ...");
+        List<String> iplist = new ArrayList<>();
+        List<Integer> portlist = new ArrayList<>();
+        iplist.add("ecelinux6.uwaterloo.ca");
+        iplist.add("ecelinux7.uwaterloo.ca");
+        iplist.add("ecelinux8.uwaterloo.ca");
+        portlist.add(10010);
+        portlist.add(10011);
+        portlist.add(10012);
+//        while (true) {
+//            boolean flag = false;
+//            for (int i = 0; i < iplist.size(); i++) {
+//                client = getClient(iplist.get(i), portlist.get(i));
+//                if (client != null) {
+//                    flag = true;
+//                    break;
+//                }
+//            }
+//            if (flag)
+//                break;
+//        }
+        /*
         for (int i=0; i<10; i++) {
             String key = UUID.randomUUID().toString();
             String value = UUID.randomUUID().toString();
@@ -76,6 +100,7 @@ public class Client {
             }
         }
         System.out.println("Finish Testing ...\n Enter Command line mode:");
+        */
         Scanner scanner = new Scanner(System.in);
         int id = 10;
         while (true) {
@@ -97,6 +122,19 @@ public class Client {
                             client = getClient(response.getIp(), response.getPort());
                         }
                     } catch (TException e) {
+                        while (true) {
+                            boolean flag = false;
+                            for (int i = 0; i < iplist.size(); i++) {
+                                System.out.println("Try to connect " + i );
+                                client = getClient(iplist.get(i), portlist.get(i));
+                                if (client != null) {
+                                    flag = true;
+                                    break;
+                                }
+                            }
+                            if (flag)
+                                break;
+                        }
                         //e.printStackTrace();
                     }
                 }
@@ -120,6 +158,19 @@ public class Client {
                             client = getClient(response.getIp(), response.getPort());
                         }
                     } catch (TException e) {
+                        while (true) {
+                            boolean flag = false;
+                            for (int i = 0; i < iplist.size(); i++) {
+                                System.out.println("Try to connect " + i );
+                                client = getClient(iplist.get(i), portlist.get(i));
+                                if (client != null) {
+                                    flag = true;
+                                    break;
+                                }
+                            }
+                            if (flag)
+                                break;
+                        }
                         //e.printStackTrace();
                     }
                 }

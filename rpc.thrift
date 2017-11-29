@@ -2,6 +2,7 @@
 struct AppendEntriesResponse {
   1: i32 term;
   2: bool success;
+  3: i32 lastLogIndex;
 }
 
 struct RequestVoteResponse {
@@ -9,10 +10,10 @@ struct RequestVoteResponse {
   2: bool voteGranted;
 }
 
-struct Entry {
+struct Entry {  // TODO: add id to this Entry to handle with resent from client
   1: i32 term;
   2: i32 index;
-  3: i32 type
+  3: i32 type; # 0: new term 1: put 2: get
   4: string key;
   5: string value;
 }
