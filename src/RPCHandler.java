@@ -23,7 +23,7 @@ public class RPCHandler implements RaftRPC.Iface {
     * 5. If leaderCommit > commitIndex, set commitIndex = min(leaderCommit, index of last new entry)
     * */
     public AppendEntriesResponse AppendEntries(int term, int leaderID, int prevLogIndex, int prevLogTerm, List<Entry> entries, int leaderCommit) throws org.apache.thrift.TException {
-        StorageNode.logger.info(this + " receive entries from " + leaderID);
+        //StorageNode.logger.info(this + " receive entries from " + leaderID);
         if (term >= raft.getCurrentTerm()) {
             if (term > raft.getCurrentTerm()) {
                 StorageNode.logger.info(term + " > " + raft.getCurrentTerm() + " Step Down");
@@ -39,17 +39,26 @@ public class RPCHandler implements RaftRPC.Iface {
 
             if (raft.getLogs().isConsistentWith(prevLogIndex, prevLogTerm)) {
                 if (entries != null) {
+                    //StorageNode.logger.info(this + " receive entries from " + leaderID + " Entry Length : " + entries.size());
                     for (Entry e: entries) {
                         if (! raft.getLogs().append(e)) {
                             // Append Failed
                             AppendEntriesResponse response =
                                     new AppendEntriesResponse(raft.getCurrentTerm(), false, raft.getLogs().getLastLogIndex());
                             return response;
+                        } else {
+                            raft.getLogs().append(e);
                         }
                     }
                 }
+
                 raft.getLogs().setCommitIndex(Math.min(leaderCommit, raft.getLogs().getLastLogIndex()));
-                StorageNode.logger.info(raft + " is fine with append entries from " + leaderID);
+                if (entries != null) {
+                    StorageNode.logger.info(raft + " is fine with append entries from " + leaderID);
+                    StorageNode.logger.info(raft + " set last Log Index as " + raft.getLogs().getLastLogIndex());
+                }
+//                else
+//                    StorageNode.logger.info(raft + " is fine with heartbeat from " + leaderID);
                 AppendEntriesResponse response = new AppendEntriesResponse(raft.getCurrentTerm(), true, raft.getLogs().getLastLogIndex());
                 return response;
             } else {
@@ -84,6 +93,7 @@ public class RPCHandler implements RaftRPC.Iface {
                 && lastLogIndex >= raft.getLastLogIndex() && lastLogTerm >= raft.getLastLogTerm()) {
             raft.setState(Raft.State.Follower);
             StorageNode.logger.info(this + " voted for " + candidateID);
+            raft.setVotedFor(candidateID);
             raft.setElectionTimeout();
             return new RequestVoteResponse(raft.getCurrentTerm(), true);
         } else {
@@ -101,7 +111,7 @@ public class RPCHandler implements RaftRPC.Iface {
         ClientResponse response = new ClientResponse();
         if (raft.getState() == Raft.State.Leader) {
             // Type 1 is Get
-            response = raft.executeCommand(1, id, key, "");
+            response = raft.executeCommand(2, id, key, "");
             //response.setValue(raft.getValue(key));
             //response.setStatus((short)0);
         } else if (raft.getLeaderID() != -1) {
@@ -121,7 +131,7 @@ public class RPCHandler implements RaftRPC.Iface {
 //            if (raft.putValue(key, value))
 //                response.setStatus((short)0);
             // Type 2: Put
-            response = raft.executeCommand(2, id, key, value);
+            response = raft.executeCommand(1, id, key, value);
         } else if (raft.getLeaderID() != -1) {
             response.setStatus((short)-1);
             Peer leader = raft.getPeer(raft.getLeaderID());

@@ -34,11 +34,13 @@ public class Log {
     private int lastIndex = -1;
     private int lastTerm = 0;
 
-    private int commitIndex = 0;
+    private int commitIndex = -1;
+    private int id;
 
-    public Log(Configuration config, StateMachine stateMachine) throws IOException {
+    public Log(Configuration config, StateMachine stateMachine, int id) throws IOException {
         this.config = config;
         this.stateMachine = stateMachine;
+        this.id = id;
 
         // create log directory if not exist
         this.config.getLogDirectory().mkdirs();
@@ -58,7 +60,7 @@ public class Log {
     }
 
     public File getCommitLog() {
-        File file = new File(getLogDirectory(), "commit.log");
+        File file = new File(getLogDirectory(), "commit." + this.id );
         return file;
     }
 
@@ -216,7 +218,7 @@ public class Log {
     }
 
     synchronized public Entry getEntry(int index) {
-        if (index > 0 && index <= lastIndex) {
+        if (index >= 0 && index <= lastIndex) {
             if (index >= firstIndex && entries.size() > 0) {
                 assert (index - firstIndex < Integer.MAX_VALUE);
                 assert (firstIndex == entries.get(0).index);
@@ -275,7 +277,8 @@ public class Log {
             synchronized (stateMachine) {
                 while (commitIndex > stateMachine.getIndex()) {
                     final Entry entry = getEntry(stateMachine.getIndex() + 1);
-                    assert (entry != null);
+                    if (entry == null) return;
+                    //assert (entry != null);
                     assert (entry.index == stateMachine.getIndex() + 1);
                     stateMachine.apply(entry);
 

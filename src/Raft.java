@@ -6,6 +6,7 @@ import org.apache.thrift.transport.TSocket;
 import org.apache.thrift.transport.TTransport;
 
 import java.io.IOException;
+import java.security.SecureRandom;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -27,8 +28,15 @@ public class Raft {
     // State for each node
     // persistent state on all servers
     private int currentTerm;
+
+    public void setVotedFor(int votedFor) {
+        this.votedFor = votedFor;
+    }
+
     private int votedFor;
     private int lastTermCommitted = 0;
+
+    private SecureRandom random = new SecureRandom();
 
 
 
@@ -79,7 +87,7 @@ public class Raft {
 
     public Raft(Configuration config, StateMachine stateMachine) throws IOException {
         this.config = config;
-        this.logs = new Log(config, stateMachine);
+        this.logs = new Log(config, stateMachine, this.id);
     }
 
     private void persist() {
@@ -90,7 +98,7 @@ public class Raft {
     }
 
     synchronized public void setElectionTimeout() {
-        this.electionTimeout = System.currentTimeMillis() + this.config.getElectionTimeout(); //TODO: add random timeout?
+        this.electionTimeout = System.currentTimeMillis() + this.config.getElectionTimeout() + random.nextInt(500); //TODO: add random timeout?
     }
 
     private void genThread4PeriodicTask() {
@@ -111,10 +119,13 @@ public class Raft {
     }
 
     private void periodicTask() { // TODO: need to be synchronized type?
-        System.out.println("I am alive "+this.id + " " + this.state);
+        //System.out.println("I am alive "+this.id + " " + this.state);
         switch (this.state) {
+            case Candidate:
             case Follower:
                 if (System.currentTimeMillis() > this.electionTimeout) {
+                    this.leaderID = -1;
+                    this.votedFor = -1;
                     startElection();
                 }
                 break;
@@ -314,6 +325,7 @@ public class Raft {
             try {
                 int prevLogIndex = peer.getNextIndex() - 1;
                 int prevLogTerm = this.logs.getTerm(prevLogIndex);
+                //StorageNode.logger.info(" I want to get entry from " + peer.getNextIndex() + " to " + this.logs.getLastIndex() + " for " + peer);
                 List<Entry> entries = this.logs.getEntries(peer.getNextIndex());
                 // Try heartbeat first to make it successful
                 AppendEntriesResponse response = client.AppendEntries(this.currentTerm,
@@ -324,13 +336,15 @@ public class Raft {
                             if (entries != null) {
                                 peer.setMatchIndex(entries.get(entries.size()-1).getIndex());
                                 peer.setNextIndex(peer.getMatchIndex()+1);
+                                //StorageNode.logger.info("Update " + peer + " match index to " + peer.getMatchIndex());
+                                //StorageNode.logger.info("Update " + peer + " next Index to " + peer.getNextIndex());
                                 assert(peer.getNextIndex() != 0);
                             } else {
-                                peer.setNextIndex(Math.max(response.lastLogIndex, 0));
+                                peer.setNextIndex(Math.max(response.lastLogIndex+1, 0));
                             }
                         } else {
                             if (peer.getNextIndex() > response.lastLogIndex) {
-                                peer.setNextIndex(Math.max(response.lastLogIndex, 0));
+                                peer.setNextIndex(Math.max(response.lastLogIndex + 1, 0));
                             } else if (peer.getNextIndex() > 0) {
                                 peer.decreaseNextIndex();
                             }
@@ -350,18 +364,23 @@ public class Raft {
         if (state == State.Leader) {
             Entry e = new Entry(this.currentTerm, this.logs.getLastLogIndex()+1, type, key, value);
             boolean r = this.logs.append(e);
+            StorageNode.logger.info("Append Log " + r);
             if (r) {
                 while (e.index > this.logs.getStateMachine().getIndex()) {
+                    //StorageNode.logger.info("Waiting for state machine");
                 }
                 if (e.type == 2) {
                     response.setValue(this.logs.getStateMachine().getValue(e.index));
                     response.setStatus((short)0);
+                    StorageNode.logger.info("Finish Get Operation");
                 } else if (e.type == 1) {
                     response.setStatus((short)0);
+                    StorageNode.logger.info("Finish Put Operation");
                 }
                 // TODO: How to get the result and compose the response
             } else {
                 // Client resent this command, if it
+                StorageNode.logger.info("Append Failed");
                 // TODO: Feature request: If the Entry is existed (duplicate), then return the duplicate entry
             }
         } else if (leaderID != -1) {
