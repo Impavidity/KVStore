@@ -10,7 +10,11 @@ struct RequestVoteResponse {
 }
 
 struct Entry {
-  1: i32 key;
+  1: i32 term;
+  2: i32 index;
+  3: i32 type
+  4: string key;
+  5: string value;
 }
 
 service RaftRPC {

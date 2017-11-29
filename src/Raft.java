@@ -42,10 +42,8 @@ public class Raft {
         Follower, Candidate, Leader
     }
 
-    private Map<Integer, Peer> peers = new HashMap<Integer, Peer>();
-    private Map<Integer, RaftRPC.Client> clients = new ConcurrentHashMap<Integer, RaftRPC.Client>();
-
-
+    private Map<Integer, Peer> peers = new HashMap<>();
+    private Map<Integer, RaftRPC.Client> clients = new ConcurrentHashMap<>();
 
     private State state;
 

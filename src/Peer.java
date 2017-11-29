@@ -19,4 +19,9 @@ public class Peer {
     int getPort() {
         return this.port;
     }
+
+    @Override
+    public String toString() {
+        return String.format("Peer-%d", id);
+    }
 }

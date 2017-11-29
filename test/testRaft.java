@@ -8,6 +8,7 @@ public class testRaft {
     static int  NUM_NODE = 3;
     static List<Raft> rafts = new ArrayList<Raft>();
     static Configuration config = new Configuration();
+
     public static void testRaftEngine() {
         for (int i = 0; i < NUM_NODE; i++) {
             Raft raft = new Raft(config);
