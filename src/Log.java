@@ -15,14 +15,24 @@ public class Log {
 
     private DataOutputStream out;
 
-    private int firstIndex = 0;
+    private int firstIndex = -1;
     private int firstTerm = 0;
-    private int lastIndex = 0;
-    private int lastTerm = 0;
 
     public void setCommitIndex(int commitIndex) {
         this.commitIndex = commitIndex;
     }
+
+
+    public int getLastIndex() {
+        return lastIndex;
+    }
+
+    public int getLastTerm() {
+        return lastTerm;
+    }
+
+    private int lastIndex = -1;
+    private int lastTerm = 0;
 
     private int commitIndex = 0;
 
@@ -30,8 +40,10 @@ public class Log {
         this.config = config;
         this.stateMachine = stateMachine;
 
-        this.config.getLogDirector().mkdirs();
+        // create log directory if not exist
+        this.config.getLogDirectory().mkdirs();
 
+        // replay commit commands in state machine
         replayLogs();
 
         updateStateMachine();
@@ -43,6 +55,11 @@ public class Log {
         }
         Thread t = new Thread(new periodicTask());
         t.start();
+    }
+
+    public File getCommitLog() {
+        File file = new File(getLogDirectory(), "commit.log");
+        return file;
     }
 
     synchronized public StateMachine getStateMachine() {
@@ -70,7 +87,7 @@ public class Log {
     }
 
     public File getLogDirectory() {
-        return config.getLogDirector();
+        return config.getLogDirectory();
     }
 
     public List<Entry> getEntries() {
@@ -90,7 +107,7 @@ public class Log {
         if (entry.index == lastIndex + 1 && entry.term >= lastTerm) {
             entries.add(entry);
 
-            if (firstIndex == 0) {
+            if (firstIndex == -1) {
                 assert (entries.size() == 1);
 
                 firstIndex = entry.index;
@@ -108,7 +125,7 @@ public class Log {
     }
 
     public int getTerm(int index) {
-        if (index == 0) {
+        if (index == -1) {
             return 0;
         }
 
@@ -131,7 +148,7 @@ public class Log {
         while (lastIndex >= index) {
             entries.remove((int) (lastIndex-- - firstIndex));
         }
-        if (lastIndex > 0) {
+        if (lastIndex >= 0) {
             lastTerm = getTerm(lastIndex);
         } else {
             lastTerm = 0;
@@ -158,13 +175,14 @@ public class Log {
     private synchronized void replayLogs() throws IOException {
         Entry entry;
         do {
-            entry = getEntryFromDisk(stateMachine.getIndex() + 1);
+            entry = getEntryFromDisk(stateMachine.getIndex());
             if (entry != null) {
                 stateMachine.apply(entry);
             }
         } while (entry != null);
 
-        File file = new File(getLogDirectory(), "requests.log");
+        File file = getCommitLog();
+
         final List<Entry> list = loadLogFile(file);
         if (list != null && list.size() > 0) {
             assert (entries.size() == 0);
@@ -207,7 +225,7 @@ public class Log {
     }
 
     private Entry getEntryFromDisk(int index) throws IOException {
-        File file = new File(getLogDirectory(), "requests.log");
+        File file = getCommitLog();
         if (file.exists()) {
             List<Entry> list = loadLogFile(file);
             if (list != null && list.size() > 0) {
@@ -221,21 +239,23 @@ public class Log {
         return null;
     }
 
-    public List<Entry> loadLogFile(File file) throws IOException {
+    public List<Entry> loadLogFile(File file) {
         List<Entry> list =  new ArrayList<>();
-        try {
-            DataInputStream in = new DataInputStream(new BufferedInputStream(new FileInputStream(file)));
-            while (true) {
-                int term = in.readInt();
-                int index = in.readInt();
-                int type = in.readInt();
-                String key = in.readUTF();
-                String value = in.readUTF();
-                final Entry entry = new Entry(term, index, type, key, value);
-                list.add(entry);
+        if (file.exists()) {
+            try {
+                DataInputStream in = new DataInputStream(new BufferedInputStream(new FileInputStream(file)));
+                while (true) {
+                    int term = in.readInt();
+                    int index = in.readInt();
+                    int type = in.readInt();
+                    String key = in.readUTF();
+                    String value = in.readUTF();
+                    final Entry entry = new Entry(term, index, type, key, value);
+                    list.add(entry);
+                }
+            } catch (IOException e) {
+                logger.debug("Read {} from {}", list.size(), file);
             }
-        } catch (EOFException e) {
-            logger.debug("Read {} from {}", list.size(), file);
         }
         return list;
     }
@@ -250,7 +270,7 @@ public class Log {
                     stateMachine.apply(entry);
 
                     if (out == null) {
-                        File file = new File(getLogDirectory(), "requests.log");
+                        File file = getCommitLog();
                         out = new DataOutputStream(new BufferedOutputStream(new FileOutputStream(file)));
                     }
 
@@ -266,15 +286,26 @@ public class Log {
         }
     }
 
+    public List<Entry> getEntries(int fromIndex) {
+        if (fromIndex > lastIndex) {
+            return null;
+        }
+        final Entry[] list = new Entry[lastIndex - fromIndex + 1];
+        for (int i = 0; i < list.length; i++) {
+            list[i] = getEntry(fromIndex + i);
+            if (list[i] == null) {
+                logger.warn("Could not find log entry {}", fromIndex + i);
+                return null;
+            }
+        }
+        return Arrays.asList(list);
+    }
+
     private synchronized void compact() {
         if (entries.size() > config.getThreshold()) {
-            if (firstIndex > commitIndex || firstIndex > stateMachine.getIndex()) {
-                return;
-            }
-
             List<Entry> entriesToKeep = new ArrayList<>();
             for (Entry entry : entries) {
-                if (entry.index > commitIndex || entry.index > stateMachine.getIndex()) {
+                if (entry.index >= commitIndex || entry.index > stateMachine.getIndex()) {
                     entriesToKeep.add(entry);
                 }
             }

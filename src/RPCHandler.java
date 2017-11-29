@@ -36,10 +36,36 @@ public class RPCHandler implements RaftRPC.Iface {
                 raft.setState(Raft.State.Follower);
             }
             raft.setElectionTimeout();
-            AppendEntriesResponse response = new AppendEntriesResponse(raft.getCurrentTerm(), true);
-            return response;
+
+            if (raft.getLogs().isConsistenWith(prevLogIndex, prevLogTerm)) {
+                if (entries != null) {
+                    for (Entry e: entries) {
+                        if (! raft.getLogs().append(e)) {
+                            // Append Failed
+                            AppendEntriesResponse response =
+                                    new AppendEntriesResponse(raft.getCurrentTerm(), false, raft.getLogs().getLastLogIndex());
+                            return response;
+                        }
+                    }
+                }
+                raft.getLogs().setCommitIndex(Math.min(leaderCommit, raft.getLogs().getLastLogIndex()));
+                StorageNode.logger.info(raft + " is fine with append entries from " + leaderID);
+                AppendEntriesResponse response = new AppendEntriesResponse(raft.getCurrentTerm(), true, raft.getLogs().getLastLogIndex());
+                return response;
+            } else {
+                StorageNode.logger.warn(raft + " is inconsistent with " + leaderID);
+                StorageNode.logger.warn("Leader PrevLogTerm = " + prevLogTerm + " PrevLogIndex = " + prevLogIndex);
+                StorageNode.logger.warn("Follower firstTerm = " + raft.getLogs().getFirstTerm() + " firstIndex = " + raft.getLogs().getFirstIndex());
+                StorageNode.logger.warn("Follower lastTerm = " + raft.getLogs().getLastTerm() + " lastIndex = " + raft.getLogs().getLastIndex());
+                if (prevLogIndex > raft.getLogs().getCommitIndex()) {
+                    raft.getLogs().wipeConflictedEntries(prevLogIndex);
+                } else {
+                    // TODO: stop machine
+                }
+                // Rewrite
+            }
         }
-        AppendEntriesResponse response = new AppendEntriesResponse(raft.getCurrentTerm(), false);
+        AppendEntriesResponse response = new AppendEntriesResponse(raft.getCurrentTerm(), false, raft.getLogs().getLastLogIndex());
         return response;
     }
 

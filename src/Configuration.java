@@ -14,11 +14,13 @@ public class Configuration {
         return ELECTION_TIMEOUT;
     }
 
-    public File getLogDirector() {
+    public File getLogDirectory() {
         return logDirectory;
     }
 
     public int getThreshold() {
         return THRESHOLD;
     }
+
+
 }

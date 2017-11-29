@@ -2,6 +2,7 @@
 struct AppendEntriesResponse {
   1: i32 term;
   2: bool success;
+  3: i32 lastLogIndex;
 }
 
 struct RequestVoteResponse {

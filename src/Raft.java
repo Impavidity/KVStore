@@ -33,6 +33,11 @@ public class Raft {
 
 
     private int leaderID = -1;
+
+    public Log getLogs() {
+        return logs;
+    }
+
     private Log logs;
 
     // volatile state on all servers
@@ -307,9 +312,31 @@ public class Raft {
         if (client == null) return;
         synchronized (client) {
             try {
+                int prevLogIndex = peer.getNextIndex() - 1;
+                int prevLogTerm = this.logs.getTerm(prevLogIndex);
+                List<Entry> entries = this.logs.getEntries(peer.getNextIndex());
                 // Try heartbeat first to make it successful
                 AppendEntriesResponse response = client.AppendEntries(this.currentTerm,
-                        this.id, -1, -1, null, -1);
+                        this.id, prevLogIndex, prevLogTerm, entries, this.logs.getCommitIndex());
+                if (this.state == State.Leader) {
+                    if (!stepDown(response.term)) {
+                        if (response.success) {
+                            if (entries != null) {
+                                peer.setMatchIndex(entries.get(entries.size()-1).getIndex());
+                                peer.setNextIndex(peer.getMatchIndex()+1);
+                                assert(peer.getNextIndex() != 0);
+                            } else {
+                                peer.setNextIndex(Math.max(response.lastLogIndex, 0));
+                            }
+                        } else {
+                            if (peer.getNextIndex() > response.lastLogIndex) {
+                                peer.setNextIndex(Math.max(response.lastLogIndex, 0));
+                            } else if (peer.getNextIndex() > 0) {
+                                peer.decreaseNextIndex();
+                            }
+                        }
+                    }
+                }
             } catch (TException e) {
                 //e.printStackTrace();
                 StorageNode.logger.info("Update Peer " + peer.getId() + " failed");
