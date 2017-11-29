@@ -4,6 +4,11 @@
 public class Peer {
     private String ip;
     private int port;
+
+    public int getId() {
+        return id;
+    }
+
     private int id;
 
     Peer(String ip, int port, int id) {

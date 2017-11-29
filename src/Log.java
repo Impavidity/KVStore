@@ -17,8 +17,8 @@ public class Log {
 
     private int firstIndex = 0;
     private int firstTerm = 0;
-    private int lastIndex = 0;
-    private int lastTerm = 0;
+    private int lastIndex = -1;
+    private int lastTerm = -1;
     private int commitIndex = 0;
 
     public Log(Configuration config, StateMachine stateMachine) throws IOException {

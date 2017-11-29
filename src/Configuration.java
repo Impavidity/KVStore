@@ -4,7 +4,8 @@ import java.io.File;
  * Created by shipeng on 17-11-21.
  */
 public class Configuration {
-    private int ELECTION_TIMEOUT = 1500;
+
+    private int ELECTION_TIMEOUT = 3000;
     private int THRESHOLD = 1000;
 
     private File logDirectory = new File("raft");
