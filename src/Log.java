@@ -79,6 +79,16 @@ public class Log {
         return entries;
     }
 
+    public boolean isConsistentWith(final int index, final long term) {
+        if (index == -1 && term == 0 || index > lastIndex) {
+            return true;
+        }
+
+        final Entry entry = getEntry(index);
+
+        return (entry != null && entry.term == term);
+    }
+
     synchronized public boolean append(Entry entry) {
         if (entry.index <= lastIndex) {
             if (getTerm(entry.index) != entry.term) {
