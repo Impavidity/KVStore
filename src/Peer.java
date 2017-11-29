@@ -5,6 +5,12 @@ public class Peer {
     private String ip;
     private int port;
 
+    public int getMatchIndex() {
+        return matchIndex;
+    }
+
+    private int matchIndex = -1;
+
     public int getId() {
         return id;
     }

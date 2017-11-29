@@ -28,6 +28,7 @@ public class Raft {
     // persistent state on all servers
     private int currentTerm;
     private int votedFor;
+    private int lastTermCommitted = 0;
 
 
 
@@ -113,8 +114,47 @@ public class Raft {
                 }
                 break;
             case Leader:
+                updateCommitIndex();
                 updatePeers();
                 break;
+        }
+
+    }
+
+    synchronized private boolean isCommittable(int index) {
+        int count = 1;
+        int needed = (this.peers.size() + 1) / 2;
+        for (Peer p : this.peers.values()) {
+            if (p.getMatchIndex() >= index) {
+                count ++;
+                if (count > needed)
+                    return true;
+            }
+        }
+        return count > needed;
+    }
+
+    synchronized private void updateCommitIndex() {
+        assert(this.state == State.Leader);
+        if (isCommittable(firstIndexOfTerm)) {
+            // Leader's last index
+            int index = this.logs.getLastLogIndex();
+            // Loop for peers, to find the smallest index which is commited
+            // And then update peers to my current 'index'
+            for (Peer peer: this.peers.values()) {
+                index = Math.min(index, peer.getMatchIndex());
+            } // Does not make sense for me -- Note: Peng
+            index = Math.max(index, this.logs.getCommitIndex());
+            while (index <= this.logs.getLastLogIndex() && isCommittable(index)) {
+                Entry e = this.logs.getEntry(index);
+                if (e != null && this.lastTermCommitted != e.term) {
+                    StorageNode.logger.info("Committed new term " + e.term);
+                    // TODO: some other functions here
+                    this.lastTermCommitted = e.term;
+                }
+                this.logs.setCommitIndex(index);
+                index ++;
+            }
         }
 
     }
@@ -276,6 +316,22 @@ public class Raft {
                 this.clients.remove(peer.getId());
             }
         }
+    }
+
+    public ClientResponse executeCommand(int type, int id, String key, String value) {
+        if (state == State.Leader) {
+            Entry e = new Entry(this.currentTerm, this.logs.getLastLogIndex()+1, type, key, value);
+            boolean r = this.logs.append(e);
+            if (r) {
+                while (e.index > this.logs.getStateMachine().getIndex()) {
+                }
+                // TODO: How to get the result and compose the response
+            } else {
+                // Client resent this command, if it
+                // TODO: Feature request: If the Entry is existed (duplicate), then return the duplicate entry
+            }
+        }
+        return new ClientResponse();
     }
 
     public void setLeaderID(int leaderID) {

@@ -19,6 +19,11 @@ public class Log {
     private int firstTerm = 0;
     private int lastIndex = 0;
     private int lastTerm = 0;
+
+    public void setCommitIndex(int commitIndex) {
+        this.commitIndex = commitIndex;
+    }
+
     private int commitIndex = 0;
 
     public Log(Configuration config, StateMachine stateMachine) throws IOException {
