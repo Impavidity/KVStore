@@ -22,7 +22,6 @@ public class Log {
         this.commitIndex = commitIndex;
     }
 
-
     public int getLastIndex() {
         return lastIndex;
     }
@@ -127,6 +126,7 @@ public class Log {
 
                 logger.info("Setting First Index = {} ({})", firstIndex, entry.index);
             }
+
             lastIndex = entry.index;
             lastTerm = entry.term;
 
@@ -187,7 +187,7 @@ public class Log {
     private synchronized void replayLogs() throws IOException {
         Entry entry;
         do {
-            entry = getEntryFromDisk(stateMachine.getIndex());
+            entry = getEntryFromDisk(stateMachine.getIndex() + 1);
             if (entry != null) {
                 stateMachine.apply(entry);
             }
@@ -318,7 +318,7 @@ public class Log {
         if (entries.size() > config.getThreshold()) {
             List<Entry> entriesToKeep = new ArrayList<>();
             for (Entry entry : entries) {
-                if (entry.index >= commitIndex || entry.index > stateMachine.getIndex()) {
+                if (entry.index > commitIndex || entry.index > stateMachine.getIndex()) {
                     entriesToKeep.add(entry);
                 }
             }

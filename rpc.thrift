@@ -13,7 +13,7 @@ struct RequestVoteResponse {
 struct Entry {  // TODO: add id to this Entry to handle with resent from client
   1: i32 term;
   2: i32 index;
-  3: i32 type; # 0: new term 1: put 2: get
+  3: i32 type; # 0: new term      1: put         2: get
   4: string key;
   5: string value;
 }

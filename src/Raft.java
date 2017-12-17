@@ -10,8 +10,6 @@ import java.security.SecureRandom;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
-import org.apache.log4j.BasicConfigurator;
-import org.apache.log4j.Logger;
 
 /**
  * Created by shipeng on 17-11-14.
@@ -362,8 +360,13 @@ public class Raft {
     public ClientResponse executeCommand(int type, int id, String key, String value) {
         ClientResponse response = new ClientResponse();
         if (state == State.Leader) {
-            Entry e = new Entry(this.currentTerm, this.logs.getLastLogIndex()+1, type, key, value);
-            boolean r = this.logs.append(e);
+            Entry e;
+            boolean r;
+            synchronized (this) {
+                e = new Entry(this.currentTerm, this.logs.getLastLogIndex()+1, type, key, value);
+                r = this.logs.append(e);
+            }
+
             StorageNode.logger.info("Append Log " + r);
             if (r) {
                 while (e.index > this.logs.getStateMachine().getIndex()) {
