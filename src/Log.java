@@ -9,6 +9,14 @@ public class Log {
 
     private final List<Entry> entries = new ArrayList<>();
 
+    private final List<Entry> logFile = new ArrayList<>();
+
+    private boolean inMemory;
+
+    public void setInMemory(boolean isInMemory) {
+        inMemory = isInMemory;
+    }
+
     private final Configuration config;
 
     private final StateMachine stateMachine;
@@ -186,8 +194,15 @@ public class Log {
 
     private synchronized void replayLogs() throws IOException {
         Entry entry;
+        int index = stateMachine.getIndex();
         do {
-            entry = getEntryFromDisk(stateMachine.getIndex() + 1);
+            if (inMemory) {
+                if (index + 1 < logFile.size()) entry = logFile.get(index + 1);
+                else entry = null;
+            } else {
+                entry = getEntryFromDisk(index + 1);
+            }
+
             if (entry != null) {
                 stateMachine.apply(entry);
             }
@@ -205,11 +220,15 @@ public class Log {
             lastTerm = entries.get(entries.size() - 1).term;
             out = new DataOutputStream(new BufferedOutputStream(new FileOutputStream(file)));
             for (Entry e : list) {
-                out.writeInt(e.term);
-                out.writeInt(e.index);
-                out.writeInt(e.type);
-                out.writeUTF(e.key);
-                out.writeUTF(e.value);
+                if (!inMemory) {
+                    out.writeInt(e.term);
+                    out.writeInt(e.index);
+                    out.writeInt(e.type);
+                    out.writeUTF(e.key);
+                    out.writeUTF(e.value);
+                } else {
+                    logFile.add(e);
+                }
             }
             out.flush();
             commitIndex = lastIndex;
@@ -238,6 +257,10 @@ public class Log {
     }
 
     private Entry getEntryFromDisk(int index) throws IOException {
+        if (inMemory) {
+            return logFile.get(index);
+        }
+
         File file = getCommitLog();
         if (file.exists()) {
             List<Entry> list = loadLogFile(file);
@@ -289,11 +312,15 @@ public class Log {
                         out = new DataOutputStream(new BufferedOutputStream(new FileOutputStream(file)));
                     }
 
-                    out.writeInt(entry.term);
-                    out.writeInt(entry.index);
-                    out.writeInt(entry.type);
-                    out.writeUTF(entry.key);
-                    out.writeUTF(entry.value);
+                    if (!inMemory) {
+                        out.writeInt(entry.term);
+                        out.writeInt(entry.index);
+                        out.writeInt(entry.type);
+                        out.writeUTF(entry.key);
+                        out.writeUTF(entry.value);
+                    } else {
+                        logFile.add(entry);
+                    }
                 }
                 if (out!=null)
                     out.flush();
