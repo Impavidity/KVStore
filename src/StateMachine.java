@@ -36,6 +36,9 @@ public class StateMachine {
     }
 
     public String getValue(int index) {
-        return indexValue.get(index);
+        String value = indexValue.get(index);
+        //if (value == null) return "";
+        //else return value;
+        return value;
     }
 }

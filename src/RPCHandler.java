@@ -54,8 +54,8 @@ public class RPCHandler implements RaftRPC.Iface {
 
                 raft.getLogs().setCommitIndex(Math.min(leaderCommit, raft.getLogs().getLastLogIndex()));
                 if (entries != null) {
-                    StorageNode.logger.info(raft + " is fine with append entries from " + leaderID);
-                    StorageNode.logger.info(raft + " set last Log Index as " + raft.getLogs().getLastLogIndex());
+                    //StorageNode.logger.info(raft + " is fine with append entries from " + leaderID);
+                    //StorageNode.logger.info(raft + " set last Log Index as " + raft.getLogs().getLastLogIndex());
                 }
 //                else
 //                    StorageNode.logger.info(raft + " is fine with heartbeat from " + leaderID);

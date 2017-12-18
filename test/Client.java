@@ -49,19 +49,19 @@ public class Client {
         portlist.add(10010);
         portlist.add(10011);
         portlist.add(10012);
-//        while (true) {
-//            boolean flag = false;
-//            for (int i = 0; i < iplist.size(); i++) {
-//                client = getClient(iplist.get(i), portlist.get(i));
-//                if (client != null) {
-//                    flag = true;
-//                    break;
-//                }
-//            }
-//            if (flag)
-//                break;
-//        }
-        /*
+        while (true) {
+            boolean flag = false;
+            for (int i = 0; i < iplist.size(); i++) {
+                client = getClient(iplist.get(i), portlist.get(i));
+                if (client != null) {
+                    flag = true;
+                    break;
+                }
+            }
+            if (flag)
+                break;
+        }
+
         for (int i=0; i<10; i++) {
             String key = UUID.randomUUID().toString();
             String value = UUID.randomUUID().toString();
@@ -100,82 +100,7 @@ public class Client {
             }
         }
         System.out.println("Finish Testing ...\n Enter Command line mode:");
-        */
-        Scanner scanner = new Scanner(System.in);
-        int id = 10;
-        while (true) {
-            System.out.print("Enter command type (put/get) : ");
-            String type = scanner.next();
-            if (type.equals("put")) {
-                System.out.print("Enter key : ");
-                String key = scanner.next();
-                System.out.print("Enter value : ");
-                String value = scanner.next();
-                while (true) {
-                    try {
-                        ClientResponse response = client.Put(id, key, value);
-                        if (response.getStatus() == 0) {
-                            System.out.println("Success");
-                            break;
-                        } else if (response.getStatus() == -1){
-                            System.out.println("Change connection to " + response.getIp() + " : " + response.getPort());
-                            client = getClient(response.getIp(), response.getPort());
-                        }
-                    } catch (TException e) {
-                        while (true) {
-                            boolean flag = false;
-                            for (int i = 0; i < iplist.size(); i++) {
-                                System.out.println("Try to connect " + i );
-                                client = getClient(iplist.get(i), portlist.get(i));
-                                if (client != null) {
-                                    flag = true;
-                                    break;
-                                }
-                            }
-                            if (flag)
-                                break;
-                        }
-                        //e.printStackTrace();
-                    }
-                }
-                id += 1;
-            }
-            if (type.equals("get")) {
-                System.out.print("Enter key : ");
-                String key = scanner.next();
-                while (true) {
-                    try {
-                        ClientResponse response = client.Get(id, key);
-                        if (response.getStatus() == 0) {
-                            if (response.getValue().equals("")) {
-                                System.out.println("The key does not exist");
-                            } else {
-                                System.out.println("Results : " + response.getValue());
-                            }
-                            break;
-                        } else if (response.getStatus() == -1){
-                            System.out.println("Change connection to " + response.getIp() + " : " + response.getPort());
-                            client = getClient(response.getIp(), response.getPort());
-                        }
-                    } catch (TException e) {
-                        while (true) {
-                            boolean flag = false;
-                            for (int i = 0; i < iplist.size(); i++) {
-                                System.out.println("Try to connect " + i );
-                                client = getClient(iplist.get(i), portlist.get(i));
-                                if (client != null) {
-                                    flag = true;
-                                    break;
-                                }
-                            }
-                            if (flag)
-                                break;
-                        }
-                        //e.printStackTrace();
-                    }
-                }
-            }
-        }
+
 
 
     }
