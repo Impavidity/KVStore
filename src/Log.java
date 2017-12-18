@@ -175,9 +175,9 @@ public class Log {
                 if (out != null) {
                     out.flush();
                 }
-                synchronized (this) {
-                    wait(100);
-                }
+//                synchronized (this) {
+//                    wait(1); // TODO : Tune parameter
+//                }
             } catch (Exception e) {
                 logger.error(e.getMessage(), e);
             }

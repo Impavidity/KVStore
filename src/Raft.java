@@ -106,11 +106,11 @@ public class Raft {
             public void run() {
                 while (true) { // TODO: check the role/state ?
                     periodicTask();
-                    try {
-                        Thread.sleep(100);
-                    } catch (InterruptedException e) {
-                        e.printStackTrace();
-                    }
+//                    try {
+//                        Thread.sleep(1); //TODO : Tune Parameters
+//                    } catch (InterruptedException e) {
+//                        e.printStackTrace();
+//                    }
                 }
             }
         }
@@ -362,9 +362,12 @@ public class Raft {
     public ClientResponse executeCommand(int type, int id, String key, String value) {
         ClientResponse response = new ClientResponse();
         if (state == State.Leader) {
+//            response.setStatus((short)0);
+//            response.setValue("0");
+//            return response;
             Entry e = new Entry(this.currentTerm, this.logs.getLastLogIndex()+1, type, key, value);
             boolean r = this.logs.append(e);
-            StorageNode.logger.info("Append Log " + r);
+            //StorageNode.logger.info("Append Log " + r);
             if (r) {
                 while (e.index > this.logs.getStateMachine().getIndex()) {
                     //StorageNode.logger.info("Waiting for state machine");
@@ -372,15 +375,17 @@ public class Raft {
                 if (e.type == 2) {
                     response.setValue(this.logs.getStateMachine().getValue(e.index));
                     response.setStatus((short)0);
-                    StorageNode.logger.info("Finish Get Operation");
+                    if (response.value == null)
+                        System.out.println(response.value);
+                    //StorageNode.logger.info("Finish Get Operation");
                 } else if (e.type == 1) {
                     response.setStatus((short)0);
-                    StorageNode.logger.info("Finish Put Operation");
+                    //StorageNode.logger.info("Finish Put Operation");
                 }
                 // TODO: How to get the result and compose the response
             } else {
                 // Client resent this command, if it
-                StorageNode.logger.info("Append Failed");
+                //StorageNode.logger.info("Append Failed");
                 // TODO: Feature request: If the Entry is existed (duplicate), then return the duplicate entry
             }
         } else if (leaderID != -1) {
