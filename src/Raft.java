@@ -24,7 +24,7 @@ public class Raft {
     // Node configuration
     private Configuration config;
     // Election Timeout
-    private long electionTimeout;
+    private volatile long electionTimeout;
     // State for each node
     // persistent state on all servers
     private int currentTerm;
@@ -340,6 +340,7 @@ public class Raft {
             // Set some info here
         }
         updatePeers();
+        StorageNode.logger.info(this + " Finish the update peers soon after becoming leader");
     }
 
     synchronized private void updatePeers() {

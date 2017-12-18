@@ -6,8 +6,10 @@ import org.apache.thrift.transport.TSocket;
 import org.apache.thrift.transport.TTransport;
 import org.apache.thrift.transport.TTransportException;
 
+import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Random;
 import java.util.Scanner;
 
 /**
@@ -15,30 +17,48 @@ import java.util.Scanner;
  */
 public class DebugClient {
 
-    public static RaftRPC.Client getClient(String ip, int port) {
-        try {
-            TSocket sock = new TSocket(ip, port);
-            TTransport transport = new TFramedTransport(sock);
-            transport.open();
-            TProtocol protocol = new TBinaryProtocol(transport);
-            return new RaftRPC.Client(protocol);
-        } catch (TTransportException e) {
-            return null;
+    static InetSocketAddress primaryAddress;
+    static List<String> iplist = new ArrayList<>();
+    static List<Integer> portlist = new ArrayList<>();
+
+    static InetSocketAddress getPrimaryAddress() {
+        Random rand = new Random();
+        int index = Math.abs(rand.nextInt()) % 3;
+        return new InetSocketAddress(iplist.get(index), portlist.get(index));
+    }
+
+    static RaftRPC.Client getThriftClient() {
+
+        while (true) {
+            try {
+                TSocket sock = new TSocket(primaryAddress.getHostName(), primaryAddress.getPort());
+                TTransport transport = new TFramedTransport(sock);
+                transport.open();
+                TProtocol protocol = new TBinaryProtocol(transport);
+                System.out.println("Connecting to " + primaryAddress.getHostName());
+                return new RaftRPC.Client(protocol);
+            } catch (TTransportException e) {
+                //System.out.println("Unable to connect to primary\n" + e);
+                primaryAddress = getPrimaryAddress();
+
+            }
+            try {
+                Thread.sleep(5);
+            } catch (InterruptedException e) {}
         }
     }
+
+
     public static void main(String[] args) {
-        String ip = "ecelinux6.uwaterloo.ca";
-        int port = 10010;
-        RaftRPC.Client client = getClient(ip, port);
-        System.out.println("Testing ...");
-        List<String> iplist = new ArrayList<>();
-        List<Integer> portlist = new ArrayList<>();
         iplist.add("ecelinux6.uwaterloo.ca");
         iplist.add("ecelinux7.uwaterloo.ca");
         iplist.add("ecelinux8.uwaterloo.ca");
         portlist.add(10010);
         portlist.add(10011);
         portlist.add(10012);
+        primaryAddress = getPrimaryAddress();
+        RaftRPC.Client client = getThriftClient();
+        System.out.println("Testing ...");
         Scanner scanner = new Scanner(System.in);
         int id = 10;
         while (true) {
@@ -57,22 +77,11 @@ public class DebugClient {
                             break;
                         } else if (response.getStatus() == -1){
                             System.out.println("Change connection to " + response.getIp() + " : " + response.getPort());
-                            client = getClient(response.getIp(), response.getPort());
+                            primaryAddress = new InetSocketAddress(response.getIp(), response.getPort());
+                            client = getThriftClient();
                         }
                     } catch (TException e) {
-                        while (true) {
-                            boolean flag = false;
-                            for (int i = 0; i < iplist.size(); i++) {
-                                System.out.println("Try to connect " + i );
-                                client = getClient(iplist.get(i), portlist.get(i));
-                                if (client != null) {
-                                    flag = true;
-                                    break;
-                                }
-                            }
-                            if (flag)
-                                break;
-                        }
+                        client = getThriftClient();
                         //e.printStackTrace();
                     }
                 }
@@ -93,22 +102,12 @@ public class DebugClient {
                             break;
                         } else if (response.getStatus() == -1){
                             System.out.println("Change connection to " + response.getIp() + " : " + response.getPort());
-                            client = getClient(response.getIp(), response.getPort());
+                            primaryAddress = new InetSocketAddress(response.getIp(), response.getPort());
+                            client = getThriftClient();
                         }
                     } catch (TException e) {
-                        while (true) {
-                            boolean flag = false;
-                            for (int i = 0; i < iplist.size(); i++) {
-                                System.out.println("Try to connect " + i );
-                                client = getClient(iplist.get(i), portlist.get(i));
-                                if (client != null) {
-                                    flag = true;
-                                    break;
-                                }
-                            }
-                            if (flag)
-                                break;
-                        }
+                        client = getThriftClient();
+
                     }
                 }
             }

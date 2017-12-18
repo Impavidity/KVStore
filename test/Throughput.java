@@ -166,39 +166,55 @@ public class Throughput {
                     boolean type = false;
                     if (type=rand.nextBoolean()) {
                         while (true) {
-                            String key = "key-" + (Math.abs(rand.nextLong()) % keyspaceSize);
-                            String value = "value-" + Math.abs(rand.nextLong());
-                            exlog.logWriteInvocation(tid, key, value);
-                            ClientResponse resp = client.Put(-1, key, value);
-                            if (resp.getStatus() == 0) {
-                                exlog.logWriteResponse(tid, key);
-                                numOps++;
-                                break;
-                            } else if (resp.getStatus() == -1) {
-                                System.out.println("Redirect to " + resp.getIp());
-                                primaryAddress = new InetSocketAddress(resp.getIp(), resp.getPort());
+                            try {
+                                String key = "key-" + (Math.abs(rand.nextLong()) % keyspaceSize);
+                                String value = "value-" + Math.abs(rand.nextLong());
+                                exlog.logWriteInvocation(tid, key, value);
+                                System.out.println("Put Operation " + key + "  " + value);
+                                ClientResponse resp = client.Put(-1, key, value);
+                                if (resp.getStatus() == 0) {
+                                    exlog.logWriteResponse(tid, key);
+                                    numOps++;
+                                    break;
+                                } else if (resp.getStatus() == -1) {
+                                    System.out.println("Redirect to " + resp.getIp());
+                                    primaryAddress = new InetSocketAddress(resp.getIp(), resp.getPort());
+                                    Thread.sleep(500);
+                                    client = getThriftClient();
+                                } else {
+                                    System.out.println("No leader currently");
+                                }
+                            } catch (Exception x) {
+                                System.out.println("Exception During Put "+ x);
                                 client = getThriftClient();
-                            } else {
-                                System.out.println("No leader currently");
                             }
+
                         }
                     } else {
-                        while (true) {
-                            String key = "key-" + (Math.abs(rand.nextLong()) % keyspaceSize);
-                            exlog.logReadInvocation(tid, key);
-                            ClientResponse resp = client.Get(-1, key);
-                            if (resp.getStatus() == 0) {
-                                exlog.logReadResponse(tid, key, resp.value);
-                                numOps ++;
-                                break;
-                            } else if (resp.getStatus() == -1) {
-                                primaryAddress = new InetSocketAddress(resp.getIp(), resp.getPort());
-                                System.out.println("Redirect to " + resp.getIp());
-                                client = getThriftClient();
-                            } else {
-                                System.out.println("No leader currently");
+                        try {
+                            while (true) {
+                                String key = "key-" + (Math.abs(rand.nextLong()) % keyspaceSize);
+                                exlog.logReadInvocation(tid, key);
+                                System.out.println("Get Operation " + key + "  ");
+                                ClientResponse resp = client.Get(-1, key);
+                                if (resp.getStatus() == 0) {
+                                    exlog.logReadResponse(tid, key, resp.value);
+                                    numOps ++;
+                                    break;
+                                } else if (resp.getStatus() == -1) {
+                                    primaryAddress = new InetSocketAddress(resp.getIp(), resp.getPort());
+                                    System.out.println("Redirect to " + resp.getIp());
+                                    Thread.sleep(500);
+                                    client = getThriftClient();
+                                } else {
+                                    System.out.println("No leader currently");
+                                }
                             }
+                        } catch (Exception x) {
+                            System.out.println("Exception During Put "+ x);
+                            client = getThriftClient();
                         }
+
                     }
                     long diffTime = System.nanoTime() - startTime;
                     writer.write(type?"put :Q":"get "+Long.toString(diffTime)+"\n");
@@ -206,8 +222,8 @@ public class Throughput {
                 }
 
             } catch (Exception x) {
-                //x.printStackTrace();
-                client = getThriftClient();
+                x.printStackTrace();
+
             }
             globalNumOps.addAndGet(numOps);
         }
