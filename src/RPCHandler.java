@@ -57,8 +57,8 @@ public class RPCHandler implements RaftRPC.Iface {
                     //StorageNode.logger.info(raft + " is fine with append entries from " + leaderID);
                     //StorageNode.logger.info(raft + " set last Log Index as " + raft.getLogs().getLastLogIndex());
                 }
-//                else
-//                    StorageNode.logger.info(raft + " is fine with heartbeat from " + leaderID);
+                //else
+                    //StorageNode.logger.info(raft + " is fine with heartbeat from " + leaderID);
                 AppendEntriesResponse response = new AppendEntriesResponse(raft.getCurrentTerm(), true, raft.getLogs().getLastLogIndex());
                 return response;
             } else {
@@ -115,11 +115,13 @@ public class RPCHandler implements RaftRPC.Iface {
             //response.setValue(raft.getValue(key));
             //response.setStatus((short)0);
         } else if (raft.getLeaderID() != -1) {
+            StorageNode.logger.info("Redirect for client to " + raft.getLeaderID());
             response.setStatus((short)-1);
             Peer leader = raft.getPeer(raft.getLeaderID());
             response.setIp(leader.getIp());
             response.setPort(leader.getPort());
         } else {
+            StorageNode.logger.info("I do not know Leader");
             response.setStatus((short)-2);
         }
         return response;
@@ -133,13 +135,27 @@ public class RPCHandler implements RaftRPC.Iface {
             // Type 2: Put
             response = raft.executeCommand(1, id, key, value);
         } else if (raft.getLeaderID() != -1) {
+            StorageNode.logger.info("Redirect for client to " + raft.getLeaderID());
             response.setStatus((short)-1);
             Peer leader = raft.getPeer(raft.getLeaderID());
             response.setIp(leader.getIp());
             response.setPort(leader.getPort());
         } else {
+            StorageNode.logger.info("I do not know Leader");
             response.setStatus((short)-2);
         }
+        return response;
+    }
+
+    public TimeResponse getTime() throws org.apache.thrift.TException {
+        TimeResponse response = new TimeResponse();
+        response.mutex = this.raft.mutexTime.get();
+        response.statemachine = this.raft.watingStateMachineTime.get();
+        response.operations = this.raft.globalNumOps.get();
+        response.updateindex = this.raft.updateIndexTime.get();
+        response.updatepeers = this.raft.updatePeersTime.get();
+        response.periodops = this.raft.periodOps.get();
+        response.inexecs = this.raft.globalExecs.get();
         return response;
     }
 }

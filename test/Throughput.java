@@ -76,14 +76,15 @@ public class Throughput {
                 TTransport transport = new TFramedTransport(sock);
                 transport.open();
                 TProtocol protocol = new TBinaryProtocol(transport);
+                System.out.println("Connecting to " + primaryAddress.getHostName());
                 return new RaftRPC.Client(protocol);
             } catch (TTransportException e) {
-                System.out.println("Unable to connect to primary\n" + e);
+                //System.out.println("Unable to connect to primary\n" + e);
                 primaryAddress = getPrimaryAddress();
 
             }
             try {
-                Thread.sleep(100);
+                Thread.sleep(5);
             } catch (InterruptedException e) {}
         }
     }
@@ -127,6 +128,16 @@ public class Throughput {
         }
         double avgLatency = (double)totalLatency / globalNumOps.get() / 1000;
         System.out.println("Average latency: " + ((int)(avgLatency*100))/100f + " ms");
+        System.out.println("Operations number from client: " + globalNumOps.get());
+        RaftRPC.Client client = getThriftClient();
+        TimeResponse response = client.getTime();
+        System.out.println("Operations number from server: " + response.getOperations());
+        System.out.println("Operations into execute: " + response.getInexecs());
+        System.out.println("Time for mutex: " + (double)response.getMutex() / response.getOperations() / 1000000);
+        System.out.println("Time for statemachine: " + (double)response.getStatemachine() / response.getOperations() / 1000000);
+        System.out.println("Period Ops: " + response.getPeriodops());
+        System.out.println("Time for updateindex: " + (double)response.getUpdateindex() / response.getPeriodops() / 1000000);
+        System.out.println("Time for updatepeers: " + (double)response.getUpdatepeers() / response.getPeriodops() / 1000000);
         writer.close();
 
     }
@@ -164,8 +175,11 @@ public class Throughput {
                                 numOps++;
                                 break;
                             } else if (resp.getStatus() == -1) {
+                                System.out.println("Redirect to " + resp.getIp());
                                 primaryAddress = new InetSocketAddress(resp.getIp(), resp.getPort());
                                 client = getThriftClient();
+                            } else {
+                                System.out.println("No leader currently");
                             }
                         }
                     } else {
@@ -179,7 +193,10 @@ public class Throughput {
                                 break;
                             } else if (resp.getStatus() == -1) {
                                 primaryAddress = new InetSocketAddress(resp.getIp(), resp.getPort());
+                                System.out.println("Redirect to " + resp.getIp());
                                 client = getThriftClient();
+                            } else {
+                                System.out.println("No leader currently");
                             }
                         }
                     }
@@ -189,7 +206,8 @@ public class Throughput {
                 }
 
             } catch (Exception x) {
-                x.printStackTrace();
+                //x.printStackTrace();
+                client = getThriftClient();
             }
             globalNumOps.addAndGet(numOps);
         }

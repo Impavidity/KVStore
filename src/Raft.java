@@ -9,7 +9,9 @@ import java.io.IOException;
 import java.security.SecureRandom;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Semaphore;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * Created by shipeng on 17-11-14.
@@ -26,6 +28,8 @@ public class Raft {
     // State for each node
     // persistent state on all servers
     private int currentTerm;
+
+    static Semaphore mutex = new Semaphore(1);
 
     public void setVotedFor(int votedFor) {
         this.votedFor = votedFor;
@@ -83,8 +87,9 @@ public class Raft {
 
     private State state;
 
-    public Raft(Configuration config, StateMachine stateMachine) throws IOException {
+    public Raft(Configuration config, StateMachine stateMachine, int id) throws IOException {
         this.config = config;
+        this.id = id;
         this.logs = new Log(config, stateMachine, this.id);
     }
 
@@ -114,6 +119,31 @@ public class Raft {
         }
         Thread t = new Thread(new periodicTask());
         t.start();
+//        class periodicTask2 implements Runnable {
+//            public void run() {
+//                while (true) {
+//                    periodicTask2();
+//                }
+//            }
+//        }
+//        Thread t2 = new Thread(new periodicTask2());
+//        t2.start();
+    }
+
+    static AtomicLong updateIndexTime = new AtomicLong(0);
+    static AtomicLong updatePeersTime = new AtomicLong(0);
+    static AtomicLong periodOps = new AtomicLong(0);
+
+    private void periodicTask2() {
+        switch (this.state) {
+            case Leader:
+                //periodOps.addAndGet(1);
+                long starttime = System.nanoTime();
+                updateCommitIndex();
+                long middletime = System.nanoTime();
+                updateIndexTime.addAndGet(middletime-starttime);
+                break;
+        }
     }
 
     private void periodicTask() { // TODO: need to be synchronized type?
@@ -128,8 +158,13 @@ public class Raft {
                 }
                 break;
             case Leader:
+                periodOps.addAndGet(1);
+                long starttime = System.nanoTime();
                 updateCommitIndex();
+                long middletime = System.nanoTime();
+                updateIndexTime.addAndGet(middletime-starttime);
                 updatePeers();
+                updatePeersTime.addAndGet(System.nanoTime()-middletime);
                 break;
         }
 
@@ -159,7 +194,8 @@ public class Raft {
                 index = Math.min(index, peer.getMatchIndex());
             } // Does not make sense for me -- Note: Peng
             index = Math.max(index, this.logs.getCommitIndex());
-            while (index <= this.logs.getLastLogIndex() && isCommittable(index)) {
+            int length = this.logs.getLastLogIndex();
+            while (index <= length && isCommittable(index)) {
                 Entry e = this.logs.getEntry(index);
                 if (e != null && this.lastTermCommitted != e.term) {
                     StorageNode.logger.info("Committed new term " + e.term);
@@ -219,7 +255,7 @@ public class Raft {
         this.state = State.Follower;
         setElectionTimeout();
         // Increase election timeout during start, ensure all nodes are ready
-        this.electionTimeout += 10000;
+        this.electionTimeout += 5000;
         genThread4PeriodicTask();
     }
 
@@ -357,22 +393,43 @@ public class Raft {
         }
     }
 
+//    synchronized boolean update(Entry e, int type, String key, String value) {
+//        e = new Entry(this.currentTerm, this.logs.getLastLogIndex()+1, type, key, value);
+//        return this.logs.append(e);
+//    }
+
+    static AtomicInteger globalNumOps = new AtomicInteger(0);
+    static AtomicLong mutexTime = new AtomicLong(0);
+    static AtomicLong watingStateMachineTime = new AtomicLong(0);
+    static AtomicInteger globalExecs = new AtomicInteger(0);
+
     public ClientResponse executeCommand(int type, int id, String key, String value) {
+        globalExecs.addAndGet(1);
         ClientResponse response = new ClientResponse();
         if (state == State.Leader) {
             Entry e;
             boolean r;
-            synchronized (this) {
-                e = new Entry(this.currentTerm, this.logs.getLastLogIndex()+1, type, key, value);
-                r = this.logs.append(e);
+            long starttime = System.nanoTime();
+            try {
+                mutex.acquire();
+            } catch (InterruptedException e1) {
+                e1.printStackTrace();
             }
+            e = new Entry(this.currentTerm, this.logs.getLastLogIndex()+1, type, key, value);
+            r = this.logs.append(e);
+            mutex.release();
+            long middletime = System.nanoTime();
+            mutexTime.addAndGet(middletime-starttime);
 
             //StorageNode.logger.info("Append Log " + r);
 
             if (r) {
+
                 while (e.index > this.logs.getStateMachine().getIndex()) {
                     //StorageNode.logger.info("Waiting for state machine");
                 }
+                watingStateMachineTime.addAndGet(System.nanoTime()-middletime);
+                globalNumOps.addAndGet(1);
                 if (e.type == 2) {
                     response.setValue(this.logs.getStateMachine().getValue(e.index));
                     response.setStatus((short)0);

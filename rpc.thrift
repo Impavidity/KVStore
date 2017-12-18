@@ -25,6 +25,16 @@ struct ClientResponse {
   4: i32 port;
 }
 
+struct TimeResponse {
+  1: i64 mutex;
+  2: i64 statemachine;
+  3: i32 operations;
+  4: i64 updateindex;
+  5: i64 updatepeers;
+  6: i64 periodops;
+  7: i32 inexecs;
+}
+
 service RaftRPC {
   AppendEntriesResponse AppendEntries(1: i32 term,
                                       2: i32 leaderID,
@@ -41,4 +51,5 @@ service RaftRPC {
   ClientResponse Put(1: i32 id,
            2: string key,
            3: string value)
+  TimeResponse getTime()
 }

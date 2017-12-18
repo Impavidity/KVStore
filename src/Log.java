@@ -205,9 +205,9 @@ public class Log {
             lastTerm = entries.get(entries.size() - 1).term;
             out = new DataOutputStream(new BufferedOutputStream(new FileOutputStream(file)));
             for (Entry e : list) {
-                out.write(e.term);
-                out.write(e.index);
-                out.write(e.type);
+                out.writeInt(e.term);
+                out.writeInt(e.index);
+                out.writeInt(e.type);
                 out.writeUTF(e.key);
                 out.writeUTF(e.value);
             }
@@ -233,6 +233,7 @@ public class Log {
                 }
             }
         }
+        logger.info("The index I want " + index + " But the last index is " + lastIndex );
         return null;
     }
 
@@ -266,7 +267,8 @@ public class Log {
                     list.add(entry);
                 }
             } catch (IOException e) {
-                logger.debug("Read {} from {}", list.size(), file);
+                //logger.error("IO Exception \n " + e);
+                //logger.debug("Read {} from {}", list.size(), file);
             }
         }
         return list;
@@ -287,12 +289,14 @@ public class Log {
                         out = new DataOutputStream(new BufferedOutputStream(new FileOutputStream(file)));
                     }
 
-                    out.write(entry.term);
-                    out.write(entry.index);
-                    out.write(entry.type);
+                    out.writeInt(entry.term);
+                    out.writeInt(entry.index);
+                    out.writeInt(entry.type);
                     out.writeUTF(entry.key);
                     out.writeUTF(entry.value);
                 }
+                if (out!=null)
+                    out.flush();
             }
         } catch (IOException e) {
             logger.error(e.getMessage(), e);
@@ -318,16 +322,17 @@ public class Log {
         if (entries.size() > config.getThreshold()) {
             List<Entry> entriesToKeep = new ArrayList<>();
             for (Entry entry : entries) {
-                if (entry.index > commitIndex || entry.index > stateMachine.getIndex()) {
+                if (entry.index >= commitIndex || entry.index >= stateMachine.getIndex()) {
                     entriesToKeep.add(entry);
                 }
             }
             entries.clear();
-            entries.addAll(entriesToKeep);
+            if (entriesToKeep.size() > 0)
+                entries.addAll(entriesToKeep);
             Entry firstEntry = entries.get(0);
             firstIndex = firstEntry.index;
             firstTerm = firstEntry.term;
-            logger.info("Compacted log new size = {}, firstIndex = {}", entries.size(), firstIndex);
+            //logger.info("Compacted log new size = {}, firstIndex = {}", entries.size(), firstIndex);
         }
     }
 }

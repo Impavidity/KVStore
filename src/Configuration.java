@@ -2,7 +2,7 @@ import java.io.File;
 
 public class Configuration {
 
-    private int ELECTION_TIMEOUT = 3000;
+    private int ELECTION_TIMEOUT = 2000;
     private int THRESHOLD = 1000;
 
     private File logDirectory = new File("raft");

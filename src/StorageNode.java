@@ -19,9 +19,8 @@ public class StorageNode {
         //logger.setLevel(Level.INFO);
         Configuration config = new Configuration();
         StateMachine stateMachine = new StateMachine();
-        Raft raft = new Raft(config, stateMachine);
-        raft.setID(Integer.parseInt(args[0]));
-        logger.info("My ID is " + args[1]);
+        Raft raft = new Raft(config, stateMachine, Integer.parseInt(args[0]));
+        logger.info("Set ID : " + raft.getId() + " My ID is " + args[1]);
         for (int i=2; i<args.length; i++) {
             String paras[] = args[i].split(":");
             int id = Integer.parseInt(paras[0]);
