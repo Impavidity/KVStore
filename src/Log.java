@@ -11,7 +11,7 @@ public class Log {
 
     private final List<Entry> logFile = new ArrayList<>();
 
-    private boolean inMemory;
+    private boolean inMemory = false;
 
     public void setInMemory(boolean isInMemory) {
         inMemory = isInMemory;
@@ -194,8 +194,9 @@ public class Log {
 
     private synchronized void replayLogs() throws IOException {
         Entry entry;
-        int index = stateMachine.getIndex();
+
         do {
+            int index = stateMachine.getIndex();
             if (inMemory) {
                 if (index + 1 < logFile.size()) entry = logFile.get(index + 1);
                 else entry = null;

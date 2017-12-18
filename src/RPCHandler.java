@@ -46,8 +46,6 @@ public class RPCHandler implements RaftRPC.Iface {
                             AppendEntriesResponse response =
                                     new AppendEntriesResponse(raft.getCurrentTerm(), false, raft.getLogs().getLastLogIndex());
                             return response;
-                        } else {
-                            raft.getLogs().append(e);
                         }
                     }
                 }
@@ -57,8 +55,8 @@ public class RPCHandler implements RaftRPC.Iface {
                     //StorageNode.logger.info(raft + " is fine with append entries from " + leaderID);
                     //StorageNode.logger.info(raft + " set last Log Index as " + raft.getLogs().getLastLogIndex());
                 }
-                //else
-                    //StorageNode.logger.info(raft + " is fine with heartbeat from " + leaderID);
+                else
+                    StorageNode.logger.info(raft + " is fine with heartbeat from " + leaderID);
                 AppendEntriesResponse response = new AppendEntriesResponse(raft.getCurrentTerm(), true, raft.getLogs().getLastLogIndex());
                 return response;
             } else {

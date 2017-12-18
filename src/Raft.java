@@ -354,6 +354,7 @@ public class Raft {
     }
 
     synchronized private void updatePeer(Peer peer) {
+        System.out.println("Updating " + peer);
         RaftRPC.Client client = getClient(peer.getId());
         if (client == null) return;
         synchronized (client) {
